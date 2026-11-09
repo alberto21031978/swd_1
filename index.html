@@ -1,0 +1,1988 @@
+<!DOCTYPE html>
+<html lang="it" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Smart Wall Dashboard Touch</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Outfit', 'sans-serif'],
+          },
+          colors: {
+            panel: {
+              card: 'rgba(18, 25, 41, 0.88)',
+              border: 'rgba(255, 255, 255, 0.08)',
+              hover: 'rgba(51, 65, 85, 0.8)',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      overflow-x: hidden;
+      font-family: 'Inter', sans-serif;
+    }
+    .font-display {
+      font-family: 'Outfit', sans-serif;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(100, 116, 139, 0.45);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.7);
+    }
+    .glass-card {
+      background: rgba(18, 25, 41, 0.88);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
+    }
+    .edit-mode-active .widget-box {
+      border: 2px dashed rgba(99, 102, 241, 0.6) !important;
+      animation: pulseBorder 2.5s infinite alternate;
+    }
+    @keyframes pulseBorder {
+      0% { border-color: rgba(99, 102, 241, 0.4); }
+      100% { border-color: rgba(129, 140, 248, 0.85); }
+    }
+    .tap-btn:active {
+      transform: scale(0.96);
+    }
+    @keyframes gentleBreath {
+      0%, 100% { opacity: 0.95; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.995); }
+    }
+    .animate-screensaver {
+      animation: gentleBreath 9s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col bg-slate-950 text-slate-100 overflow-y-auto">
+
+  <!-- ==================== HEADER PRINCIPALE TOUCH ==================== -->
+  <header class="w-full bg-slate-900/95 border-b border-slate-800 px-4 md:px-6 py-3 sticky top-0 z-40 backdrop-blur-md">
+    <div class="flex flex-wrap items-center justify-between gap-3 max-w-[1920px] mx-auto">
+      
+      <!-- Logo e Info -->
+      <div class="flex items-center gap-3">
+        <div class="p-2.5 rounded-2xl bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 flex items-center justify-center">
+          <i data-lucide="layout-grid" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-xl font-bold font-display tracking-tight text-white">Smart Hub Wall</h1>
+            <span id="connectionBadge" class="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-semibold">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Online
+            </span>
+          </div>
+          <p id="subGreeting" class="text-xs text-slate-400">Pannello di Controllo Intelligente</p>
+        </div>
+      </div>
+
+      <!-- Orologio / Data Centrale -->
+      <div class="flex flex-col items-center justify-center text-center order-last sm:order-none w-full sm:w-auto">
+        <div id="headerTime" class="text-3xl md:text-4xl font-extrabold font-display tracking-tight text-white drop-shadow-md">
+          00:00:00
+        </div>
+        <div id="headerDate" class="text-xs text-slate-400 font-medium capitalize">
+          Caricamento data...
+        </div>
+      </div>
+
+      <!-- Tasti Gestione Rapida & Modalità Modifica Layout -->
+      <div class="flex items-center gap-2 flex-wrap">
+        
+        <!-- Toggle Modalità Modifica Layout -->
+        <button id="btnToggleEditMode" onclick="toggleEditMode()" class="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 tap-btn border border-slate-700 text-xs font-semibold flex items-center gap-1.5 text-indigo-300">
+          <i data-lucide="sliders" class="w-4 h-4"></i>
+          <span id="editModeBtnLabel">Personalizza</span>
+        </button>
+
+        <!-- Pulsante Aggiungi Widget (visibile anche in navbar) -->
+        <button onclick="openAddWidgetModal()" class="px-3 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 tap-btn text-white text-xs font-semibold flex items-center gap-1.5 shadow-lg shadow-indigo-600/30">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span class="hidden md:inline">Widget</span>
+        </button>
+
+        <!-- Gestione Calendari iCal/Webcal/Embed -->
+        <button onclick="openCalendarModal()" title="Configura Google & iCloud" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 tap-btn border border-slate-700 text-sky-400">
+          <i data-lucide="calendar" class="w-4 h-4"></i>
+        </button>
+
+        <!-- Salvaschermo Notturno -->
+        <button id="btnDimMode" title="Modalità Notte / Salvaschermo" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 tap-btn border border-slate-700 text-amber-400">
+          <i data-lucide="moon" class="w-4 h-4"></i>
+        </button>
+
+        <!-- Schermo Intero -->
+        <button id="btnFullscreen" title="Schermo Intero" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 tap-btn border border-slate-700 text-slate-300">
+          <i data-lucide="maximize" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- BANNER MODALITÀ MODIFICA ATTIVA -->
+    <div id="editModeBanner" class="hidden mt-2 pt-2 border-t border-slate-800 flex items-center justify-between text-xs text-indigo-300 max-w-[1920px] mx-auto">
+      <span class="flex items-center gap-2">
+        <i data-lucide="move" class="w-4 h-4 text-indigo-400"></i>
+        <strong>Modalità Personalizzazione attiva:</strong> Usa le frecce per spostare, le icone per allargare/restringere o rimuovere widget.
+      </span>
+      <div class="flex items-center gap-2">
+        <button onclick="resetDefaultLayout()" class="text-rose-400 hover:underline text-xs">Ripristina Default</button>
+        <button onclick="toggleEditMode()" class="px-2.5 py-1 bg-indigo-600 text-white rounded-lg font-semibold text-xs tap-btn">Salva & Fine</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== CONTENITORE GRIGLIA WIDGET DINAMICA ==================== -->
+  <main class="flex-1 p-3 md:p-6">
+    <div id="widgetsGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5 auto-rows-min max-w-[1920px] mx-auto">
+      <!-- I widget verranno renderizzati dinamicamente dal motore JS in base all'ordine in appState.layout -->
+    </div>
+  </main>
+
+  <!-- ==================== SCREENSAVER / MODALITÀ NOTTE OLED ==================== -->
+  <div id="screensaverOverlay" class="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center cursor-pointer transition-opacity duration-700 opacity-0 pointer-events-none select-none">
+    <div class="animate-screensaver text-center px-4">
+      <div id="screenClock" class="font-display font-extrabold text-7xl md:text-9xl text-slate-300 tracking-wider">00:00</div>
+      <div id="screenDate" class="text-lg md:text-2xl text-slate-500 font-light mt-3 capitalize">Caricamento...</div>
+      <div id="screenWeatherMini" class="mt-8 flex items-center justify-center gap-3 text-slate-400 text-lg">
+        <span id="screenWeatherIcon" class="text-3xl">⛅</span>
+        <span id="screenWeatherTemp">--°C</span>
+        <span class="text-slate-600">•</span>
+        <span id="screenWeatherDesc">Meteo in aggiornamento</span>
+      </div>
+      <div id="screenNextEventMini" class="mt-6 text-xs md:text-sm text-indigo-400 max-w-md truncate"></div>
+      <p class="mt-14 text-xs text-slate-700 tracking-widest uppercase">Tocca lo schermo per riattivare</p>
+    </div>
+  </div>
+
+  <!-- ==================== MODALE 1: CATALOGO AGGIUNGI WIDGET ==================== -->
+  <div id="modalAddWidget" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-3 md:p-6 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-200">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="flex items-center justify-between p-5 border-b border-slate-800">
+        <div class="flex items-center gap-3">
+          <div class="p-2.5 rounded-2xl bg-indigo-500/15 text-indigo-400">
+            <i data-lucide="plus-circle" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold font-display text-white">Aggiungi Widget alla Dashboard</h3>
+            <p class="text-xs text-slate-400">Seleziona i componenti per il tuo pannello domotico</p>
+          </div>
+        </div>
+        <button onclick="closeAddWidgetModal()" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-3" id="availableWidgetsList">
+        <!-- Generato via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODALE 2: CONFIGURAZIONE CALENDARI (GOOGLE & ICLOUD) ==================== -->
+  <div id="modalCalendars" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-3 md:p-6 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-200">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      
+      <div class="flex items-center justify-between p-5 border-b border-slate-800">
+        <div class="flex items-center gap-3">
+          <div class="p-2.5 rounded-2xl bg-sky-500/15 text-sky-400">
+            <i data-lucide="calendar" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold font-display text-white">Sincronizzazione Calendari Semplificata</h3>
+            <p class="text-xs text-slate-400">Nessuna chiave API complessa: usa l'indirizzo segreto iCal o l'iFrame diretto</p>
+          </div>
+        </div>
+        <button onclick="closeCalendarModal()" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-5 space-y-6 text-xs text-slate-300">
+
+        <!-- METODO A: GOOGLE CALENDAR TRAMITE INDIRIZZO SEGRETO ICAL -->
+        <div class="bg-slate-950/70 border border-slate-800 p-4 rounded-2xl space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+              <h4 class="font-bold text-sm text-white">Google Calendar (Indirizzo Segreto iCal)</h4>
+            </div>
+            <button onclick="toggleBox('helpGoogleIcal')" class="text-indigo-400 hover:underline">Guida passo-passo</button>
+          </div>
+
+          <div id="helpGoogleIcal" class="hidden p-3 rounded-xl bg-blue-950/20 border border-blue-800/30 text-blue-200 space-y-1 text-[11px]">
+            <p class="font-semibold text-blue-300">Come prelevare l'URL segreto iCal da Google Calendar:</p>
+            <ol class="list-decimal ml-4 space-y-1">
+              <li>Da PC o browser tablet, vai su <a href="https://calendar.google.com" target="_blank" class="underline text-blue-400">calendar.google.com</a>.</li>
+              <li>Sulla barra laterale sinistra, passa il mouse sul tuo calendario, clicca sui <strong>tre puntini (...)</strong> e scegli <strong>"Impostazioni e condivisione"</strong>.</li>
+              <li>Scorri in basso fino alla sezione <strong>"Integra calendario"</strong>.</li>
+              <li>Copia il link presente nel riquadro <strong>"Indirizzo segreto in formato iCal"</strong> (termina con <code>.ics</code>).</li>
+              <li>Incollalo qui sotto e premi Salva. Tutti gli eventi appariranno nell'agenda!</li>
+            </ol>
+          </div>
+
+          <div class="flex gap-2">
+            <input type="url" id="googleIcalUrlInput" placeholder="https://calendar.google.com/calendar/ical/.../basic.ics" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono placeholder-slate-600 focus:outline-none focus:border-blue-500">
+            <button onclick="saveGoogleIcal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl tap-btn">Salva</button>
+          </div>
+          <div class="flex justify-between items-center text-[11px] text-slate-500">
+            <span id="googleIcalStatus">Stato: Non configurato</span>
+            <button onclick="removeGoogleIcal()" class="text-rose-400 hover:underline">Rimuovi</button>
+          </div>
+        </div>
+
+        <!-- METODO B: APPLE ICLOUD CALENDAR (FEED WEBCAL/ICAL) -->
+        <div class="bg-slate-950/70 border border-slate-800 p-4 rounded-2xl space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-purple-400"></span>
+              <h4 class="font-bold text-sm text-white">Apple iCloud (Feed iCal Condiviso)</h4>
+            </div>
+            <button onclick="toggleBox('helpIcloud')" class="text-indigo-400 hover:underline">Guida passo-passo</button>
+          </div>
+
+          <div id="helpIcloud" class="hidden p-3 rounded-xl bg-purple-950/20 border border-purple-800/30 text-purple-200 space-y-1 text-[11px]">
+            <p class="font-semibold text-purple-300">Come prelevare il link dal tuo iPhone, iPad o Mac:</p>
+            <ol class="list-decimal ml-4 space-y-1">
+              <li>Apri l'app <strong>Calendario</strong> su Apple iOS / macOS.</li>
+              <li>Tocca <strong>"Calendari"</strong> in basso, poi l'icona <strong>(i)</strong> accanto al calendario (es. Famiglia).</li>
+              <li>Attiva la spunta su <strong>"Calendario pubblico"</strong>.</li>
+              <li>Tocca <strong>"Condividi link..."</strong>, copialo e incollalo nel campo sottostante.</li>
+            </ol>
+          </div>
+
+          <div class="flex gap-2">
+            <input type="url" id="icloudUrlInput" placeholder="webcal://p68-caldav.icloud.com/published/2/..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono placeholder-slate-600 focus:outline-none focus:border-purple-500">
+            <button onclick="saveIcloudFeed()" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl tap-btn">Salva</button>
+          </div>
+          <div class="flex justify-between items-center text-[11px] text-slate-500">
+            <span id="icloudStatus">Stato: Non configurato</span>
+            <button onclick="removeIcloudFeed()" class="text-rose-400 hover:underline">Rimuovi</button>
+          </div>
+        </div>
+
+        <!-- METODO C: GOOGLE CALENDAR EMBED DIRETTO (IFRAME) -->
+        <div class="bg-slate-950/70 border border-slate-800 p-4 rounded-2xl space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-emerald-400"></span>
+              <h4 class="font-bold text-sm text-white">Google Calendar Incorporato (Embed iFrame Diretto)</h4>
+            </div>
+            <button onclick="toggleBox('helpEmbed')" class="text-indigo-400 hover:underline">Info</button>
+          </div>
+
+          <div id="helpEmbed" class="hidden p-3 rounded-xl bg-emerald-950/20 border border-emerald-800/30 text-emerald-200 text-[11px]">
+            Questo metodo mostra il vero calendario ufficiale di Google incorporato dentro la dashboard. Puoi incollare l'URL presente in "Codice di incorporamento" o l'ID calendario (es. <code>latuamail@gmail.com</code>).
+          </div>
+
+          <div class="flex gap-2">
+            <input type="text" id="googleEmbedUrlInput" placeholder="https://calendar.google.com/calendar/embed?src=... oppure indirizzo@gmail.com" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono placeholder-slate-600 focus:outline-none focus:border-emerald-500">
+            <button onclick="saveGoogleEmbed()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl tap-btn">Salva Embed</button>
+          </div>
+        </div>
+
+        <!-- METODO D: IMPORT FILE .ICS & AGGIUNTA EVENTI VELOCE -->
+        <div class="bg-slate-950/70 border border-slate-800 p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+          <div>
+            <h4 class="font-bold text-white mb-0.5">Importa file Calendario (.ics offline)</h4>
+            <p class="text-[11px] text-slate-400">Carica un file .ics scaricato da Outlook, Apple o Google.</p>
+          </div>
+          <div>
+            <label class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl cursor-pointer text-slate-200 font-medium inline-flex items-center gap-2 tap-btn">
+              <i data-lucide="upload" class="w-4 h-4 text-indigo-400"></i> Seleziona file .ics
+              <input type="file" id="icsFileInput" accept=".ics" class="hidden" onchange="handleIcsFileUpload(event)">
+            </label>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="p-4 border-t border-slate-800 flex justify-between items-center bg-slate-900">
+        <button onclick="syncAllCalendars()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold flex items-center gap-2 tap-btn">
+          <i data-lucide="refresh-cw" id="syncModalIcon" class="w-4 h-4"></i> Sincronizza Ora
+        </button>
+        <button onclick="closeCalendarModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-semibold">Chiudi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODALE 3: AGGIUNTA MANUALE EVENTO ==================== -->
+  <div id="modalAddEvent" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-3 md:p-6 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-200">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-5 shadow-2xl">
+      <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
+        <h3 class="text-base font-bold font-display text-white">Nuovo Appuntamento Locale</h3>
+        <button onclick="closeAddEventModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <form onsubmit="handleSaveManualEvent(event)" class="space-y-3.5 text-xs">
+        <div>
+          <label class="block font-medium text-slate-400 mb-1">Titolo dell'evento *</label>
+          <input type="text" id="manualEventTitle" placeholder="Es. Dentista, Cena famiglia..." required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-400 mb-1">Data *</label>
+            <input type="date" id="manualEventDate" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-400 mb-1">Ora *</label>
+            <input type="time" id="manualEventTime" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-400 mb-1">Luogo / Nota</label>
+          <input type="text" id="manualEventLocation" placeholder="Es. Studio Medico o Online" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-800">
+          <button type="button" onclick="closeAddEventModal()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl">Annulla</button>
+          <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl tap-btn">Salva Evento</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODALE 4: SELEZIONE LOCALITÀ METEO ==================== -->
+  <div id="modalWeatherCity" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-200">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-sm p-5 shadow-2xl">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
+        <h3 class="text-base font-bold font-display text-white">Località Meteo</h3>
+        <button onclick="closeWeatherModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-medium text-slate-400 mb-1">Città</label>
+          <input type="text" id="weatherCityInput" placeholder="Es. Roma, Milano, Grosseto..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button onclick="closeWeatherModal()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl">Annulla</button>
+          <button onclick="saveWeatherCity()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl tap-btn">Salva</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICHE -->
+  <div id="toastNotification" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none bg-slate-800/95 border border-slate-700 shadow-2xl px-4 py-3 rounded-2xl flex items-center gap-3 backdrop-blur-md">
+    <div id="toastIcon" class="text-indigo-400"></div>
+    <div id="toastMessage" class="text-xs md:text-sm font-medium text-slate-200">Notifica</div>
+  </div>
+
+  <!-- Mini Player Audio Nascosto -->
+  <audio id="audioRadioPlayer" preload="none"></audio>
+
+  <!-- ==================== JAVASCRIPT: LOGICA COMPLETA ==================== -->
+  <script>
+    /* ========================================================
+       1. CATALOGO DEI WIDGET DISPONIBILI
+       ======================================================== */
+    const WIDGET_CATALOG = [
+      {
+        id: 'agenda',
+        name: 'Agenda & Appuntamenti',
+        desc: 'Tutti gli eventi Google, iCloud e locali in lista con filtri',
+        icon: 'calendar-days',
+        color: 'indigo',
+        defaultSpan: 2
+      },
+      {
+        id: 'calendarGrid',
+        name: 'Calendario Mensile',
+        desc: 'Griglia del mese interattiva con indicatori degli eventi',
+        icon: 'calendar',
+        color: 'purple',
+        defaultSpan: 1
+      },
+      {
+        id: 'googleEmbed',
+        name: 'Google Calendar Diretto',
+        desc: 'Incorporamento iFrame nativo di Google Calendar per tablet',
+        icon: 'globe',
+        color: 'blue',
+        defaultSpan: 2
+      },
+      {
+        id: 'weather',
+        name: 'Meteo & Previsioni Live',
+        desc: 'Temperatura, vento, umidità e 3 giorni di previsioni (Open-Meteo)',
+        icon: 'cloud-sun',
+        color: 'sky',
+        defaultSpan: 1
+      },
+      {
+        id: 'smartHome',
+        name: 'Domotica & Scenari',
+        desc: 'Controllo luci, prese, termostato (+/-0.5°C) e scenari Casa/Notte',
+        icon: 'home',
+        color: 'amber',
+        defaultSpan: 1
+      },
+      {
+        id: 'todos',
+        name: 'Promemoria & Cose da Fare',
+        desc: 'To-do list touch con spunte, conteggio e aggiunta rapida',
+        icon: 'check-square',
+        color: 'emerald',
+        defaultSpan: 1
+      },
+      {
+        id: 'familyNotes',
+        name: 'Bacheca Messaggi di Casa',
+        desc: 'Post-it digitale sempre sincronizzato per note e password Wi-Fi',
+        icon: 'sticky-note',
+        color: 'yellow',
+        defaultSpan: 2
+      },
+      {
+        id: 'radioPlayer',
+        name: 'Web Radio & Suoni Relax',
+        desc: 'Streaming audio per stazioni radio italiane e musica rilassante',
+        icon: 'radio',
+        color: 'rose',
+        defaultSpan: 1
+      },
+      {
+        id: 'clockSystem',
+        name: 'Orologio & Stato Tablet',
+        desc: 'Orologio a grandi cifre, memoria, connessione e tempo di attività',
+        icon: 'cpu',
+        color: 'cyan',
+        defaultSpan: 1
+      }
+    ];
+
+    /* ========================================================
+       2. STATO PERSISTENTE LOCALSTORAGE
+       ======================================================== */
+    const STORAGE_KEY = 'SMART_WALL_DASHBOARD_V4';
+
+    const defaultState = {
+      // Disposizione dei widget: array di oggetti { id, colSpan: 1 o 2 }
+      layout: [
+        { id: 'agenda', colSpan: 2 },
+        { id: 'calendarGrid', colSpan: 1 },
+        { id: 'weather', colSpan: 1 },
+        { id: 'smartHome', colSpan: 1 },
+        { id: 'todos', colSpan: 1 },
+        { id: 'radioPlayer', colSpan: 1 },
+        { id: 'familyNotes', colSpan: 1 }
+      ],
+      weather: {
+        city: 'Grosseto',
+        latitude: 42.76,
+        longitude: 11.11
+      },
+      calendars: {
+        googleIcalUrl: '',
+        icloudUrl: '',
+        googleEmbedUrl: 'https://calendar.google.com/calendar/embed?src=it.italian%23holiday%40group.v.calendar.google.com&ctz=Europe%2FRome',
+        lastSync: null
+      },
+      events: {
+        google: [],
+        icloud: [],
+        local: [
+          {
+            id: 'demo_1',
+            source: 'local',
+            title: 'Controllo Impianto Termico',
+            start: new Date(Date.now() + 86400000).toISOString().slice(0, 10) + 'T10:00:00',
+            location: 'Casa'
+          },
+          {
+            id: 'demo_2',
+            source: 'local',
+            title: 'Cena in Famiglia',
+            start: new Date(Date.now() + 172800000).toISOString().slice(0, 10) + 'T20:00:00',
+            location: 'Ristorante Centrale'
+          }
+        ]
+      },
+      smartHome: {
+        lightLiving: false,
+        lightKitchen: false,
+        socketDesk: false,
+        thermostatTemp: 20.5,
+        scene: 'home'
+      },
+      todos: [
+        { id: 't1', text: 'Comprare latte e caffè', done: false },
+        { id: 't2', text: 'Ritirare pacco al locker', done: true },
+        { id: 't3', text: 'Sostituire batteria sensore finestra', done: false }
+      ],
+      familyNote: "Promemoria Casa:\n- Password Wi-Fi Ospiti: SmartHome_Guest24\n- Giovedì mattina: ritiro multimateriale",
+      currentFilter: 'all',
+      selectedCalendarDay: null,
+      radio: {
+        playing: false,
+        stationIndex: 0
+      }
+    };
+
+    let appState = loadState();
+    let isEditMode = false;
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          return { ...defaultState, ...parsed };
+        }
+      } catch (e) {
+        console.error("Errore caricamento stato:", e);
+      }
+      return JSON.parse(JSON.stringify(defaultState));
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+      } catch (e) {
+        console.error("Errore salvataggio stato:", e);
+      }
+    }
+
+    function showToast(message, iconName = 'info') {
+      const toast = document.getElementById('toastNotification');
+      const msg = document.getElementById('toastMessage');
+      const icon = document.getElementById('toastIcon');
+
+      msg.textContent = message;
+      icon.innerHTML = `<i data-lucide="${iconName}" class="w-5 h-5"></i>`;
+      lucide.createIcons();
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      clearTimeout(window.toastTimer);
+      window.toastTimer = setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3000);
+    }
+
+    /* ========================================================
+       3. MODALITÀ MODIFICA LAYOUT (SPOSTAMENTO TOUCH, RESIZE, DELETE)
+       ======================================================== */
+    function toggleEditMode() {
+      isEditMode = !isEditMode;
+      const banner = document.getElementById('editModeBanner');
+      const label = document.getElementById('editModeBtnLabel');
+
+      if (isEditMode) {
+        document.body.classList.add('edit-mode-active');
+        banner.classList.remove('hidden');
+        label.textContent = "Salva";
+        showToast("Modalità Personalizzazione attiva", "sliders");
+      } else {
+        document.body.classList.remove('edit-mode-active');
+        banner.classList.add('hidden');
+        label.textContent = "Personalizza";
+        showToast("Layout salvato con successo", "check-circle");
+      }
+      renderAllWidgets();
+    }
+
+    function moveWidget(index, direction) {
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= appState.layout.length) return;
+
+      const temp = appState.layout[index];
+      appState.layout[index] = appState.layout[targetIndex];
+      appState.layout[targetIndex] = temp;
+
+      saveState();
+      renderAllWidgets();
+    }
+
+    function toggleWidgetWidth(index) {
+      const item = appState.layout[index];
+      item.colSpan = item.colSpan === 2 ? 1 : 2;
+      saveState();
+      renderAllWidgets();
+      showToast(`Dimensione widget impostata a ${item.colSpan} colonna/e`, 'columns');
+    }
+
+    function removeWidget(index) {
+      const removed = appState.layout.splice(index, 1);
+      saveState();
+      renderAllWidgets();
+      showToast(`Widget rimosso. Puoi riaggiungerlo da "+ Widget"`, 'trash-2');
+    }
+
+    function resetDefaultLayout() {
+      appState.layout = JSON.parse(JSON.stringify(defaultState.layout));
+      saveState();
+      renderAllWidgets();
+      showToast("Layout predefinito ripristinato", "rotate-ccw");
+    }
+
+    /* ========================================================
+       4. CATALOGO AGGIUNGI WIDGET (MODALE)
+       ======================================================== */
+    function openAddWidgetModal() {
+      const list = document.getElementById('availableWidgetsList');
+      const activeIds = appState.layout.map(w => w.id);
+
+      list.innerHTML = WIDGET_CATALOG.map(w => {
+        const isPresent = activeIds.includes(w.id);
+        return `
+          <div class="p-3.5 rounded-2xl border ${isPresent ? 'border-indigo-500/40 bg-indigo-950/20' : 'border-slate-800 bg-slate-950/60'} flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <span class="p-2.5 rounded-xl bg-slate-800 text-${w.color}-400">
+                <i data-lucide="${w.icon}" class="w-5 h-5"></i>
+              </span>
+              <div>
+                <h4 class="font-bold text-slate-100 text-xs md:text-sm">${w.name}</h4>
+                <p class="text-[11px] text-slate-400 leading-tight">${w.desc}</p>
+              </div>
+            </div>
+            <div>
+              ${isPresent ? `
+                <button onclick="handleAddWidget('${w.id}')" class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 tap-btn">
+                  + Duplica
+                </button>
+              ` : `
+                <button onclick="handleAddWidget('${w.id}')" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold tap-btn">
+                  Aggiungi
+                </button>
+              `}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+      document.getElementById('modalAddWidget').classList.remove('opacity-0', 'pointer-events-none');
+    }
+
+    function closeAddWidgetModal() {
+      document.getElementById('modalAddWidget').classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    function handleAddWidget(widgetId) {
+      const def = WIDGET_CATALOG.find(w => w.id === widgetId);
+      const span = def ? def.defaultSpan : 1;
+      appState.layout.push({ id: widgetId, colSpan: span });
+      saveState();
+      closeAddWidgetModal();
+      renderAllWidgets();
+      showToast(`Widget "${def ? def.name : widgetId}" aggiunto`, 'plus');
+    }
+
+    /* ========================================================
+       5. MOTORE DI RENDERING DEI WIDGET
+       ======================================================== */
+    function renderAllWidgets() {
+      const grid = document.getElementById('widgetsGrid');
+      let html = '';
+
+      appState.layout.forEach((w, index) => {
+        const spanClass = w.colSpan === 2 ? 'md:col-span-2' : 'col-span-1';
+        
+        // Barra comandi modifica visibile solo in editMode
+        const editToolbar = isEditMode ? `
+          <div class="flex items-center justify-between pb-2 mb-2 border-b border-indigo-500/30 text-indigo-300 text-[11px]">
+            <div class="flex items-center gap-1 font-semibold">
+              <i data-lucide="move" class="w-3.5 h-3.5"></i> Posizione #${index + 1}
+            </div>
+            <div class="flex items-center gap-1">
+              <button onclick="moveWidget(${index}, -1)" ${index === 0 ? 'disabled class="opacity-30 p-1"' : 'class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white tap-btn"'} title="Sposta prima / a sinistra">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+              </button>
+              <button onclick="moveWidget(${index}, 1)" ${index === appState.layout.length - 1 ? 'disabled class="opacity-30 p-1"' : 'class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white tap-btn"'} title="Sposta dopo / a destra">
+                <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+              </button>
+              <button onclick="toggleWidgetWidth(${index})" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 tap-btn" title="Allarga / Riduci larghezza">
+                <i data-lucide="${w.colSpan === 2 ? 'minimize-2' : 'maximize-2'}" class="w-3.5 h-3.5"></i>
+              </button>
+              <button onclick="removeWidget(${index})" class="p-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 tap-btn" title="Elimina widget">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        ` : '';
+
+        // Contenuto HTML specifico di ciascun widget
+        const widgetContent = getWidgetBodyHtml(w.id, index);
+
+        html += `
+          <div class="glass-card rounded-3xl p-5 widget-box ${spanClass} flex flex-col justify-between transition-all" data-widget-id="${w.id}">
+            ${editToolbar}
+            <div class="h-full flex flex-col justify-between">
+              ${widgetContent}
+            </div>
+          </div>
+        `;
+      });
+
+      grid.innerHTML = html;
+      lucide.createIcons();
+
+      // Binding e render dei contenuti interattivi
+      postRenderWidgetHooks();
+    }
+
+    function getWidgetBodyHtml(id, index) {
+      switch (id) {
+        case 'agenda':
+          return `
+            <div>
+              <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+                <div class="flex items-center gap-2.5">
+                  <span class="p-2 rounded-xl bg-indigo-500/15 text-indigo-400">
+                    <i data-lucide="calendar-days" class="w-5 h-5"></i>
+                  </span>
+                  <div>
+                    <h2 class="font-display font-bold text-slate-100 text-base">Agenda & Appuntamenti</h2>
+                    <p class="text-[11px] text-slate-400">Google, Apple iCloud e Tablet</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button onclick="openAddEventModal()" class="px-2.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1 tap-btn">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> Nuovo
+                  </button>
+                </div>
+              </div>
+
+              <!-- Filtri sorgente -->
+              <div class="flex items-center gap-1.5 mb-3 overflow-x-auto pb-1 text-xs">
+                <button onclick="setCalendarFilter('all')" id="filterBtn_all" class="px-2.5 py-1 rounded-lg ${appState.currentFilter === 'all' ? 'bg-indigo-600 text-white font-semibold' : 'bg-slate-800 text-slate-400'}">Tutti</button>
+                <button onclick="setCalendarFilter('google')" id="filterBtn_google" class="px-2.5 py-1 rounded-lg ${appState.currentFilter === 'google' ? 'bg-indigo-600 text-white font-semibold' : 'bg-slate-800 text-slate-400'} flex items-center gap-1">
+                  <span class="w-2 h-2 rounded-full bg-blue-500"></span> Google
+                </button>
+                <button onclick="setCalendarFilter('icloud')" id="filterBtn_icloud" class="px-2.5 py-1 rounded-lg ${appState.currentFilter === 'icloud' ? 'bg-indigo-600 text-white font-semibold' : 'bg-slate-800 text-slate-400'} flex items-center gap-1">
+                  <span class="w-2 h-2 rounded-full bg-purple-400"></span> iCloud
+                </button>
+                <button onclick="setCalendarFilter('local')" id="filterBtn_local" class="px-2.5 py-1 rounded-lg ${appState.currentFilter === 'local' ? 'bg-indigo-600 text-white font-semibold' : 'bg-slate-800 text-slate-400'} flex items-center gap-1">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Locale
+                </button>
+              </div>
+
+              <div id="eventsListContainer" class="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                <!-- popolato da renderEvents() -->
+              </div>
+            </div>
+
+            <div class="mt-3 pt-2.5 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
+              <span id="agendaCountLabel">0 impegni trovati</span>
+              <button onclick="openCalendarModal()" class="text-indigo-400 hover:underline flex items-center gap-1">
+                <i data-lucide="settings" class="w-3 h-3"></i> Gestisci Calendari
+              </button>
+            </div>
+          `;
+
+        case 'calendarGrid':
+          return `
+            <div>
+              <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                  <span class="p-2 rounded-xl bg-purple-500/15 text-purple-400">
+                    <i data-lucide="calendar" class="w-5 h-5"></i>
+                  </span>
+                  <h2 id="calendarMonthTitle" class="font-display font-semibold text-slate-100 text-sm md:text-base capitalize">Mese</h2>
+                </div>
+                <div class="flex items-center gap-1">
+                  <button onclick="changeCalMonth(-1)" class="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 tap-btn">
+                    <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                  </button>
+                  <button onclick="resetCalMonth()" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold tap-btn">Oggi</button>
+                  <button onclick="changeCalMonth(1)" class="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 tap-btn">
+                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-500 mb-1.5">
+                <span>L</span><span>M</span><span>M</span><span>G</span><span>V</span><span>S</span><span class="text-rose-400">D</span>
+              </div>
+
+              <div id="calendarGridDays" class="grid grid-cols-7 gap-1 text-center">
+                <!-- celle generate da JS -->
+              </div>
+            </div>
+
+            <div id="selectedDayInfo" class="mt-3 pt-2 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+              <span>Tocca un giorno con puntino per filtrare</span>
+            </div>
+          `;
+
+        case 'googleEmbed':
+          const embedSrc = appState.calendars.googleEmbedUrl || 'https://calendar.google.com';
+          return `
+            <div class="h-full flex flex-col">
+              <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                  <span class="p-2 rounded-xl bg-blue-500/15 text-blue-400">
+                    <i data-lucide="globe" class="w-5 h-5"></i>
+                  </span>
+                  <h2 class="font-display font-semibold text-slate-100 text-sm md:text-base">Google Calendar Ufficiale</h2>
+                </div>
+                <button onclick="openCalendarModal()" class="text-xs text-sky-400 hover:underline">Cambia URL</button>
+              </div>
+
+              <div class="flex-1 min-h-[300px] w-full bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 relative">
+                <iframe src="${embedSrc}" style="border: 0" width="100%" height="100%" frameborder="0" scrolling="no" class="w-full h-full filter invert-[0.88] hue-rotate-180 contrast-95"></iframe>
+              </div>
+            </div>
+          `;
+
+        case 'weather':
+          return `
+            <div>
+              <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                  <span class="p-2 rounded-xl bg-sky-500/15 text-sky-400">
+                    <i data-lucide="cloud-sun" class="w-5 h-5"></i>
+                  </span>
+                  <h2 class="font-display font-semibold text-slate-100 text-sm md:text-base">Meteo</h2>
+                </div>
+                <button onclick="openWeatherModal()" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 tap-btn">
+                  <i data-lucide="map-pin" class="w-4 h-4 text-sky-400"></i>
+                </button>
+              </div>
+
+              <div class="flex items-center justify-between my-2">
+                <div>
+                  <div class="text-xs text-slate-400 font-medium flex items-center gap-1">
+                    <span id="weatherCityDisplay">${appState.weather.city}</span>
+                  </div>
+                  <div id="wTempLarge" class="text-4xl font-extrabold font-display text-white mt-0.5">--°</div>
+                  <div id="wConditionText" class="text-xs font-medium text-slate-300 capitalize">In caricamento...</div>
+                </div>
+                <div id="wIconContainer" class="text-5xl text-sky-400">⛅</div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800 text-xs text-slate-300">
+                <div class="flex items-center gap-2 bg-slate-900/60 p-2 rounded-xl border border-slate-800/80">
+                  <i data-lucide="wind" class="w-3.5 h-3.5 text-sky-400"></i>
+                  <span id="wWindSpeed">-- km/h</span>
+                </div>
+                <div class="flex items-center gap-2 bg-slate-900/60 p-2 rounded-xl border border-slate-800/80">
+                  <i data-lucide="droplets" class="w-3.5 h-3.5 text-blue-400"></i>
+                  <span id="wHumidity">--%</span>
+                </div>
+              </div>
+            </div>
+
+            <div id="wForecastContainer" class="mt-3 pt-2.5 border-t border-slate-800 grid grid-cols-3 gap-1.5 text-center text-xs">
+              <!-- Previsioni 3 giorni -->
+            </div>
+          `;
+
+        case 'smartHome':
+          return `
+            <div>
+              <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                  <span class="p-2 rounded-xl bg-amber-500/15 text-amber-400">
+                    <i data-lucide="home" class="w-5 h-5"></i>
+                  </span>
+                  <h2 class="font-display font-semibold text-slate-100 text-sm md:text-base">Domotica Casa</h2>
+                </div>
+                <span class="text-[10px] text-amber-400 font-mono font-bold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">TOUCH</span>
+              </div>
+
+              <!-- Scenari Rapidi -->
+              <div class="grid grid-cols-3 gap-1.5 bg-slate-900/80 p-1 rounded-2xl border border-slate-800 mb-2.5">
+                <button onclick="setScene('home')" id="scene_home" class="py-1.5 rounded-xl text-xs font-semibold tap-btn transition ${appState.smartHome.scene === 'home' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400'}">In Casa</button>
+                <button onclick="setScene('away')" id="scene_away" class="py-1.5 rounded-xl text-xs font-semibold tap-btn transition ${appState.smartHome.scene === 'away' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400'}">Fuori</button>
+                <button onclick="setScene('night')" id="scene_night" class="py-1.5 rounded-xl text-xs font-semibold tap-btn transition ${appState.smartHome.scene === 'night' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400'}">Notte</button>
+              </div>
+
+              <!-- Interruttori Luce & Prese -->
+              <div class="grid grid-cols-2 gap-2">
+                <button onclick="toggleDevice('lightLiving')" id="dev_lightLiving" class="p-2.5 rounded-2xl text-left border border-slate-800 bg-slate-900/60 tap-btn transition">
+                  <div class="flex items-center justify-between mb-1">
+                    <i data-lucide="lightbulb" class="w-4 h-4 text-slate-400"></i>
+                    <span class="text-[9px] font-bold uppercase text-slate-400">${appState.smartHome.lightLiving ? 'ON' : 'OFF'}</span>
+                  </div>
+                  <div class="text-xs font-medium text-slate-200">Soggiorno</div>
+                </button>
+
+                <button onclick="toggleDevice('lightKitchen')" id="dev_lightKitchen" class="p-2.5 rounded-2xl text-left border border-slate-800 bg-slate-900/60 tap-btn transition">
+                  <div class="flex items-center justify-between mb-1">
+                    <i data-lucide="lamp" class="w-4 h-4 text-slate-400"></i>
+                    <span class="text-[9px] font-bold uppercase text-slate-400">${appState.smartHome.lightKitchen ? 'ON' : 'OFF'}</span>
+                  </div>
+                  <div class="text-xs font-medium text-slate-200">Cucina</div>
+                </button>
+              </div>
+
+              <!-- Termostato con gradini di 0.5°C -->
+              <div class="mt-2.5 p-2.5 rounded-2xl bg-slate-900/60 border border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <div class="p-1.5 rounded-xl bg-rose-500/10 text-rose-400">
+                    <i data-lucide="thermometer" class="w-4 h-4"></i>
+                  </div>
+                  <div>
+                    <div class="text-[10px] text-slate-400">Termostato</div>
+                    <div class="text-xs font-bold text-slate-100" id="thermostatDisplay">${appState.smartHome.thermostatTemp.toFixed(1)}°C</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1">
+                  <button onclick="adjustThermostat(-0.5)" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold tap-btn flex items-center justify-center">-</button>
+                  <button onclick="adjustThermostat(0.5)" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold tap-btn flex items-center justify-center">+</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="text-[10px] text-slate-500 mt-2 text-center">
+              Compatibile con Webhook Home Assistant / Shelly
+            </div>
+          `;
+
+        case 'todos':
+          return `
+            <div>
+              <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                  <span class="p-2 rounded-xl bg-emerald-500/15 text-emerald-400">
+                    <i data-lucide="check-square" class="w-5 h-5"></i>
+                  </span>
+                  <h2 class="font-display font-semibold text-slate-100 text-sm md:text-base">Promemoria</h2>
+                </div>
+                <span id="todoBadgeCounter" class="text-xs bg-slate-800 px-2 py-0.5 rounded-full text-slate-400 font-medium">0 compiti</span>
+              </div>
+
+              <div id="todoListContainer" class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                <!-- Lista todo -->
+              </div>
+            </div>
+
+            <form onsubmit="handleAddTodo(event)" class="mt-3 pt-2.5 border-t border-slate-800 flex gap-2">
+              <input type="text" id="newTodoInput" placeholder="Aggiungi una nota o promemoria..." required class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+              <button type="submit" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold tap-btn">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+              </button>
+            </form>
+          `;
+
+        case 'familyNotes':
+          return `
+            <div>
+              <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                  <span class="p-2 rounded-xl bg-yellow-500/15 text-yellow-400">
+                    <i data-lucide="sticky-note" class="w-5 h-5"></i>
+                  </span>
+                  <h2 class="font-display font-semibold text-slate-100 text-sm md:text-base">Bacheca Famiglia</h2>
+                </div>
+                <span class="text-[10px] text-slate-400 flex items-center gap-1 font-mono">
+                  <i data-lucide="save" class="w-3 h-3 text-emerald-400"></i> Auto-save
+                </span>
+              </div>
+              <textarea id="familyNotePad" rows="4" placeholder="Scrivi qui promemoria importanti, turni o password..." class="w-full bg-slate-950/70 border border-slate-800 rounded-2xl p-3 text-xs text-amber-200 placeholder-slate-600 focus:outline-none focus:border-amber-500/40 font-mono leading-relaxed resize-none"></textarea>
+            </div>
+            <div class="flex justify-between items-center text-[11px] text-slate-500 pt-1">
+              <span>Sempre visibile a tutta la famiglia sul tablet</span>
+              <button onclick="clearFamilyNote()" class="text-rose-400 hover:underline">Cancella tutto</button>
+            </div>
+          `;
+
+        case 'radioPlayer':
+          return `
+            <div>
+              <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                  <span class="p-2 rounded-xl bg-rose-500/15 text-rose-400">
+                    <i data-lucide="radio" class="w-5 h-5"></i>
+                  </span>
+                  <h2 class="font-display font-semibold text-slate-100 text-sm md:text-base">Web Radio Touch</h2>
+                </div>
+                <span id="radioStatusPill" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">STOP</span>
+              </div>
+
+              <div class="p-3 rounded-2xl bg-slate-900/70 border border-slate-800 text-center my-2">
+                <div id="radioStationTitle" class="font-bold text-sm text-white">Rai Radio 1</div>
+                <div id="radioStationGenre" class="text-[11px] text-slate-400 mt-0.5">Notizie & Approfondimenti</div>
+              </div>
+
+              <!-- Selettore stazioni -->
+              <div class="grid grid-cols-3 gap-1.5 mb-3 text-[11px]">
+                <button onclick="selectRadioStation(0)" class="py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 tap-btn">Rai 1</button>
+                <button onclick="selectRadioStation(1)" class="py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 tap-btn">Rai 2</button>
+                <button onclick="selectRadioStation(2)" class="py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 tap-btn">Lo-Fi Relax</button>
+              </div>
+
+              <div class="flex items-center justify-center gap-3 pt-1">
+                <button onclick="toggleRadioPlay()" id="radioPlayBtn" class="w-12 h-12 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center tap-btn shadow-lg shadow-rose-600/30">
+                  <i data-lucide="play" id="radioPlayIcon" class="w-5 h-5 fill-white"></i>
+                </button>
+              </div>
+            </div>
+            <div class="text-[10px] text-slate-500 text-center mt-2">
+              Flusso audio live compatibile con browser tablet
+            </div>
+          `;
+
+        case 'clockSystem':
+          return `
+            <div>
+              <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                  <span class="p-2 rounded-xl bg-cyan-500/15 text-cyan-400">
+                    <i data-lucide="cpu" class="w-5 h-5"></i>
+                  </span>
+                  <h2 class="font-display font-semibold text-slate-100 text-sm md:text-base">Stato Sistema</h2>
+                </div>
+                <span class="text-[10px] text-emerald-400 font-mono">ATTIVO</span>
+              </div>
+
+              <div class="space-y-2.5 my-2 text-xs">
+                <div class="p-2 rounded-xl bg-slate-900/60 border border-slate-800 flex justify-between items-center">
+                  <span class="text-slate-400">Sincronizzazione Cloud:</span>
+                  <span class="text-indigo-400 font-bold" id="sysSyncText">Automatica (15 min)</span>
+                </div>
+                <div class="p-2 rounded-xl bg-slate-900/60 border border-slate-800 flex justify-between items-center">
+                  <span class="text-slate-400">Display Tablet:</span>
+                  <span class="text-slate-200 font-mono" id="sysResolution">Touch Ready</span>
+                </div>
+                <div class="p-2 rounded-xl bg-slate-900/60 border border-slate-800 flex justify-between items-center">
+                  <span class="text-slate-400">Salvaschermo Notte:</span>
+                  <span class="text-amber-400 font-medium">Abilitato al tocco</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-[11px] text-slate-500">
+              <span>Smart Wall Panel v4.0</span>
+              <button onclick="window.location.reload()" class="text-sky-400 hover:underline">Ricarica Hub</button>
+            </div>
+          `;
+
+        default:
+          return `<div>Widget non riconosciuto: ${id}</div>`;
+      }
+    }
+
+    function postRenderWidgetHooks() {
+      // Re-inizializza gli elementi dinamici dei widget presenti
+      renderEventsList();
+      renderCalendar();
+      renderTodos();
+      updateDevicesUI();
+
+      // Note famiglia textarea bind
+      const noteEl = document.getElementById('familyNotePad');
+      if (noteEl) {
+        noteEl.value = appState.familyNote || '';
+        noteEl.oninput = (e) => {
+          appState.familyNote = e.target.value;
+          saveState();
+        };
+      }
+
+      // Risoluzione display per il widget di sistema
+      const resEl = document.getElementById('sysResolution');
+      if (resEl) {
+        resEl.textContent = `${window.innerWidth}x${window.innerHeight} px`;
+      }
+    }
+
+    /* ========================================================
+       6. PARSER NATIVO ICS / FEED PER GOOGLE & ICLOUD
+       ======================================================== */
+    async function fetchIcsFeed(feedUrl, sourceTag) {
+      if (!feedUrl) return [];
+
+      let cleanUrl = feedUrl.trim();
+      if (cleanUrl.startsWith('webcal://')) {
+        cleanUrl = 'https://' + cleanUrl.slice(9);
+      }
+
+      // Utilizzo proxy CORS affidabile
+      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(cleanUrl)}`;
+      let icsContent = '';
+
+      try {
+        const res = await fetch(proxyUrl);
+        if (!res.ok) throw new Error("CORS Proxy 1 fallito");
+        icsContent = await res.text();
+      } catch (err1) {
+        // Secondo tentativo tramite corsproxy.io
+        const res2 = await fetch(`https://corsproxy.io/?${encodeURIComponent(cleanUrl)}`);
+        if (!res2.ok) throw new Error("Entrambi i CORS proxy sono falliti");
+        icsContent = await res2.text();
+      }
+
+      return parseIcsString(icsContent, sourceTag);
+    }
+
+    function parseIcsString(icsText, sourceTag) {
+      const results = [];
+      if (!icsText || !icsText.includes('BEGIN:VCALENDAR')) return results;
+
+      // Gestione unwrapping righe lunghe RFC 5545
+      const unwrapped = icsText.replace(/\r\n[ \t]/g, '').replace(/\n[ \t]/g, '');
+      const lines = unwrapped.split(/\r\n|\n|\r/);
+
+      let inEvent = false;
+      let curr = {};
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (line.startsWith('BEGIN:VEVENT')) {
+          inEvent = true;
+          curr = { source: sourceTag };
+        } else if (line.startsWith('END:VEVENT')) {
+          inEvent = false;
+          if (curr.title && curr.start) {
+            curr.id = curr.id || sourceTag + '_' + Math.random().toString(36).substr(2, 9);
+            results.push(curr);
+          }
+        } else if (inEvent) {
+          const colonIndex = line.indexOf(':');
+          if (colonIndex > -1) {
+            const propPart = line.substring(0, colonIndex);
+            const val = line.substring(colonIndex + 1).trim();
+            const prop = propPart.split(';')[0].toUpperCase();
+
+            if (prop === 'SUMMARY') {
+              curr.title = unescapeIcs(val);
+            } else if (prop === 'UID') {
+              curr.id = sourceTag + '_' + val;
+            } else if (prop === 'LOCATION') {
+              curr.location = unescapeIcs(val);
+            } else if (prop === 'DTSTART') {
+              curr.start = parseIcsDate(val);
+              if (val.length === 8) curr.allDay = true;
+            } else if (prop === 'DTEND') {
+              curr.end = parseIcsDate(val);
+            }
+          }
+        }
+      }
+      return results;
+    }
+
+    function unescapeIcs(str) {
+      if (!str) return '';
+      return str.replace(/\\n/g, ' ').replace(/\\,/g, ',').replace(/\\;/g, ';').replace(/\\\\/g, '\\');
+    }
+
+    function parseIcsDate(val) {
+      if (!val) return new Date().toISOString();
+      if (val.length === 8) {
+        // Tutto il giorno YYYYMMDD
+        return `${val.substring(0,4)}-${val.substring(4,6)}-${val.substring(6,8)}T00:00:00`;
+      }
+      const y = val.substring(0, 4);
+      const m = val.substring(4, 6);
+      const d = val.substring(6, 8);
+      const hh = val.substring(9, 11) || '00';
+      const mm = val.substring(11, 13) || '00';
+      const ss = val.substring(13, 15) || '00';
+
+      if (val.endsWith('Z')) {
+        return new Date(Date.UTC(y, m - 1, d, hh, mm, ss)).toISOString();
+      }
+      return `${y}-${m}-${d}T${hh}:${mm}:${ss}`;
+    }
+
+    async function syncAllCalendars() {
+      const syncIcon = document.getElementById('syncModalIcon');
+      if (syncIcon) syncIcon.classList.add('animate-spin');
+
+      let syncedCount = 0;
+
+      // 1. Google iCal segreto
+      if (appState.calendars.googleIcalUrl) {
+        try {
+          const gEvents = await fetchIcsFeed(appState.calendars.googleIcalUrl, 'google');
+          appState.events.google = gEvents;
+          syncedCount += gEvents.length;
+          document.getElementById('googleIcalStatus').textContent = `Stato: Sincronizzato (${gEvents.length} eventi)`;
+        } catch (e) {
+          console.warn("Errore sync Google iCal:", e);
+          document.getElementById('googleIcalStatus').textContent = `Stato: Errore download feed`;
+        }
+      }
+
+      // 2. Apple iCloud
+      if (appState.calendars.icloudUrl) {
+        try {
+          const icEvents = await fetchIcsFeed(appState.calendars.icloudUrl, 'icloud');
+          appState.events.icloud = icEvents;
+          syncedCount += icEvents.length;
+          document.getElementById('icloudStatus').textContent = `Stato: Sincronizzato (${icEvents.length} eventi)`;
+        } catch (e) {
+          console.warn("Errore sync iCloud:", e);
+          document.getElementById('icloudStatus').textContent = `Stato: Errore download feed`;
+        }
+      }
+
+      appState.calendars.lastSync = new Date().toISOString();
+      saveState();
+      renderEventsList();
+      renderCalendar();
+      updateScreensaverNextEvent();
+
+      setTimeout(() => {
+        if (syncIcon) syncIcon.classList.remove('animate-spin');
+      }, 600);
+
+      showToast(`Sincronizzazione completata (${syncedCount} eventi cloud)`, 'calendar');
+    }
+
+    function saveGoogleIcal() {
+      const url = document.getElementById('googleIcalUrlInput').value.trim();
+      appState.calendars.googleIcalUrl = url;
+      saveState();
+      syncAllCalendars();
+      showToast("Indirizzo segreto Google iCal memorizzato!", "check");
+    }
+
+    function removeGoogleIcal() {
+      appState.calendars.googleIcalUrl = '';
+      appState.events.google = [];
+      document.getElementById('googleIcalUrlInput').value = '';
+      document.getElementById('googleIcalStatus').textContent = "Stato: Non configurato";
+      saveState();
+      renderEventsList();
+      renderCalendar();
+      showToast("Feed Google rimosso", "trash");
+    }
+
+    function saveIcloudFeed() {
+      const url = document.getElementById('icloudUrlInput').value.trim();
+      appState.calendars.icloudUrl = url;
+      saveState();
+      syncAllCalendars();
+      showToast("Feed iCloud salvato e sincronizzato!", "check");
+    }
+
+    function removeIcloudFeed() {
+      appState.calendars.icloudUrl = '';
+      appState.events.icloud = [];
+      document.getElementById('icloudUrlInput').value = '';
+      document.getElementById('icloudStatus').textContent = "Stato: Non configurato";
+      saveState();
+      renderEventsList();
+      renderCalendar();
+      showToast("Feed iCloud rimosso", "trash");
+    }
+
+    function saveGoogleEmbed() {
+      let raw = document.getElementById('googleEmbedUrlInput').value.trim();
+      if (!raw) return;
+
+      if (!raw.startsWith('http')) {
+        // Se l'utente ha inserito solo la mail di gmail
+        raw = `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(raw)}&ctz=Europe%2FRome`;
+      }
+      appState.calendars.googleEmbedUrl = raw;
+      saveState();
+      renderAllWidgets();
+      showToast("Google Calendar Incorporato aggiornato!", "globe");
+    }
+
+    function handleIcsFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const text = e.target.result;
+        const imported = parseIcsString(text, 'local');
+        if (imported.length > 0) {
+          appState.events.local = [...(appState.events.local || []), ...imported];
+          saveState();
+          renderEventsList();
+          renderCalendar();
+          showToast(`Importati ${imported.length} eventi dal file!`, 'check-circle');
+        } else {
+          showToast('Nessun evento valido trovato nel file .ics', 'alert-circle');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    /* ========================================================
+       7. GESTIONE APPUNTAMENTI & FILTRI
+       ======================================================== */
+    function getAllUnifiedEvents() {
+      const local = (appState.events.local || []).map(e => ({ ...e, source: 'local' }));
+      const google = (appState.events.google || []).map(e => ({ ...e, source: 'google' }));
+      const icloud = (appState.events.icloud || []).map(e => ({ ...e, source: 'icloud' }));
+
+      let all = [...local, ...google, ...icloud];
+
+      if (appState.currentFilter !== 'all') {
+        all = all.filter(e => e.source === appState.currentFilter);
+      }
+
+      if (appState.selectedCalendarDay) {
+        all = all.filter(e => e.start && e.start.slice(0, 10) === appState.selectedCalendarDay);
+      }
+
+      all.sort((a, b) => new Date(a.start) - new Date(b.start));
+      return all;
+    }
+
+    function renderEventsList() {
+      const container = document.getElementById('eventsListContainer');
+      const label = document.getElementById('agendaCountLabel');
+      if (!container) return;
+
+      const events = getAllUnifiedEvents();
+      if (label) label.textContent = `${events.length} impegni`;
+
+      if (events.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8 text-slate-500 text-xs border border-dashed border-slate-800 rounded-2xl">
+            <i data-lucide="calendar-off" class="w-7 h-7 mx-auto mb-1 opacity-40"></i>
+            Nessun impegno in programma per i filtri selezionati.
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      const now = new Date();
+      container.innerHTML = events.map(e => {
+        const d = new Date(e.start);
+        const isPast = d < now;
+        const dateStr = d.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' });
+        const timeStr = e.allDay ? 'Tutto il giorno' : d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+
+        let badge = '';
+        if (e.source === 'google') {
+          badge = `<span class="px-2 py-0.5 rounded-full text-[10px] bg-blue-500/15 text-blue-400 border border-blue-500/30">Google</span>`;
+        } else if (e.source === 'icloud') {
+          badge = `<span class="px-2 py-0.5 rounded-full text-[10px] bg-purple-500/15 text-purple-400 border border-purple-500/30">iCloud</span>`;
+        } else {
+          badge = `<span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">Locale</span>`;
+        }
+
+        return `
+          <div class="p-2.5 rounded-2xl bg-slate-900/60 border border-slate-800 flex items-center justify-between gap-3 ${isPast ? 'opacity-50' : ''}">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="text-center px-2 py-1 rounded-xl bg-slate-950 border border-slate-800 min-w-[62px]">
+                <div class="text-[9px] font-bold text-indigo-400 uppercase">${dateStr}</div>
+                <div class="text-xs font-mono font-extrabold text-white mt-0.5">${timeStr}</div>
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <h4 class="text-xs md:text-sm font-semibold text-slate-100 truncate">${escapeHtml(e.title)}</h4>
+                  ${badge}
+                </div>
+                ${e.location ? `<p class="text-[11px] text-slate-400 truncate mt-0.5"><i data-lucide="map-pin" class="w-3 h-3 inline text-slate-500 mr-1"></i>${escapeHtml(e.location)}</p>` : ''}
+              </div>
+            </div>
+            ${e.source === 'local' ? `
+              <button onclick="deleteManualEvent('${e.id}')" class="text-slate-500 hover:text-rose-400 p-1 tap-btn">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    function setCalendarFilter(filter) {
+      appState.currentFilter = filter;
+      renderEventsList();
+      renderAllWidgets();
+    }
+
+    function handleSaveManualEvent(e) {
+      e.preventDefault();
+      const title = document.getElementById('manualEventTitle').value.trim();
+      const date = document.getElementById('manualEventDate').value;
+      const time = document.getElementById('manualEventTime').value;
+      const loc = document.getElementById('manualEventLocation').value.trim();
+
+      if (!title || !date) return;
+
+      const newEv = {
+        id: 'loc_' + Date.now(),
+        source: 'local',
+        title: title,
+        start: `${date}T${time || '09:00'}:00`,
+        location: loc
+      };
+
+      appState.events.local.push(newEv);
+      saveState();
+      closeAddEventModal();
+      renderEventsList();
+      renderCalendar();
+      updateScreensaverNextEvent();
+      showToast('Appuntamento salvato sul tablet', 'check');
+    }
+
+    function deleteManualEvent(id) {
+      appState.events.local = appState.events.local.filter(e => e.id !== id);
+      saveState();
+      renderEventsList();
+      renderCalendar();
+      showToast('Evento rimosso', 'trash');
+    }
+
+    function openAddEventModal() {
+      const now = new Date();
+      document.getElementById('manualEventDate').value = now.toISOString().slice(0, 10);
+      document.getElementById('manualEventTime').value = '10:00';
+      document.getElementById('manualEventTitle').value = '';
+      document.getElementById('modalAddEvent').classList.remove('opacity-0', 'pointer-events-none');
+    }
+
+    function closeAddEventModal() {
+      document.getElementById('modalAddEvent').classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    /* ========================================================
+       8. CALENDARIO MENSILE TOUCH
+       ======================================================== */
+    let calMonthDelta = 0;
+
+    function renderCalendar() {
+      const titleEl = document.getElementById('calendarMonthTitle');
+      const grid = document.getElementById('calendarGridDays');
+      if (!titleEl || !grid) return;
+
+      const current = new Date();
+      current.setMonth(current.getMonth() + calMonthDelta);
+
+      const year = current.getFullYear();
+      const month = current.getMonth();
+      titleEl.textContent = current.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+
+      const firstDayIndex = (new Date(year, month, 1).getDay() + 6) % 7;
+      const totalDays = new Date(year, month + 1, 0).getDate();
+
+      const today = new Date();
+      const isActualMonth = today.getFullYear() === year && today.getMonth() === month;
+
+      // Mappa eventi per dot indicatori
+      const allEvents = [...(appState.events.local || []), ...(appState.events.google || []), ...(appState.events.icloud || [])];
+      const dotsMap = {};
+      allEvents.forEach(e => {
+        if (e.start) {
+          const dayKey = e.start.slice(0, 10);
+          if (!dotsMap[dayKey]) dotsMap[dayKey] = new Set();
+          dotsMap[dayKey].add(e.source);
+        }
+      });
+
+      let html = '';
+      for (let i = 0; i < firstDayIndex; i++) {
+        html += `<div class="h-8 md:h-9"></div>`;
+      }
+
+      for (let day = 1; day <= totalDays; day++) {
+        const mStr = String(month + 1).padStart(2, '0');
+        const dStr = String(day).padStart(2, '0');
+        const dayKey = `${year}-${mStr}-${dStr}`;
+
+        const isToday = isActualMonth && day === today.getDate();
+        const isSelected = appState.selectedCalendarDay === dayKey;
+        const sources = dotsMap[dayKey] ? Array.from(dotsMap[dayKey]) : [];
+
+        let dotsHtml = '';
+        if (sources.includes('google')) dotsHtml += `<span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>`;
+        if (sources.includes('icloud')) dotsHtml += `<span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span>`;
+        if (sources.includes('local')) dotsHtml += `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>`;
+
+        html += `
+          <button onclick="handleSelectCalendarDay('${dayKey}')" class="h-8 md:h-9 rounded-xl flex flex-col items-center justify-center relative tap-btn transition ${
+            isSelected
+              ? 'bg-indigo-600 text-white font-bold ring-2 ring-indigo-400'
+              : isToday
+                ? 'bg-slate-800 text-indigo-300 font-bold border border-indigo-500/50'
+                : 'text-slate-300 hover:bg-slate-800/60'
+          }">
+            <span class="text-xs leading-none">${day}</span>
+            <div class="flex items-center gap-0.5 mt-0.5">
+              ${dotsHtml}
+            </div>
+          </button>
+        `;
+      }
+
+      grid.innerHTML = html;
+    }
+
+    function handleSelectCalendarDay(dayKey) {
+      if (appState.selectedCalendarDay === dayKey) {
+        appState.selectedCalendarDay = null;
+        const info = document.getElementById('selectedDayInfo');
+        if (info) info.innerHTML = `<span>Tocca un giorno per filtrare</span>`;
+      } else {
+        appState.selectedCalendarDay = dayKey;
+        const d = new Date(dayKey);
+        const dayFormatted = d.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' });
+        const info = document.getElementById('selectedDayInfo');
+        if (info) {
+          info.innerHTML = `
+            <span>Filtro: <strong class="text-indigo-400 capitalize">${dayFormatted}</strong></span>
+            <button onclick="resetCalMonth()" class="text-indigo-400 hover:underline">Azzera</button>
+          `;
+        }
+      }
+      renderCalendar();
+      renderEventsList();
+    }
+
+    function changeCalMonth(delta) {
+      calMonthDelta += delta;
+      renderCalendar();
+    }
+
+    function resetCalMonth() {
+      calMonthDelta = 0;
+      appState.selectedCalendarDay = null;
+      renderCalendar();
+      renderEventsList();
+    }
+
+    /* ========================================================
+       9. METEO LIVE OPEN-METEO
+       ======================================================== */
+    async function fetchWeather() {
+      try {
+        const { latitude, longitude, city } = appState.weather;
+        const displayCity = document.getElementById('weatherCityDisplay');
+        if (displayCity) displayCity.textContent = city;
+
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Errore API Meteo");
+        const data = await res.json();
+        renderWeatherData(data);
+      } catch (e) {
+        console.warn("Meteo fallback:", e);
+      }
+    }
+
+    function getWeatherCodeDetails(code) {
+      if (code === 0) return { desc: 'Sereno', icon: '☀️' };
+      if (code === 1 || code === 2) return { desc: 'Poco nuvoloso', icon: '🌤️' };
+      if (code === 3) return { desc: 'Coperto', icon: '☁️' };
+      if (code >= 45 && code <= 48) return { desc: 'Nebbia', icon: '🌫️' };
+      if (code >= 51 && code <= 67) return { desc: 'Pioggia', icon: '🌦️' };
+      if (code >= 71 && code <= 77) return { desc: 'Neve', icon: '❄️' };
+      if (code >= 80 && code <= 82) return { desc: 'Rovesci', icon: '🌧️' };
+      if (code >= 95) return { desc: 'Temporale', icon: '⛈️' };
+      return { desc: 'Variabile', icon: '⛅' };
+    }
+
+    function renderWeatherData(data) {
+      if (!data || !data.current) return;
+      const c = data.current;
+      const temp = Math.round(c.temperature_2m);
+      const wind = Math.round(c.wind_speed_10m);
+      const hum = c.relative_humidity_2m;
+      const details = getWeatherCodeDetails(c.weather_code);
+
+      const tempEl = document.getElementById('wTempLarge');
+      const condEl = document.getElementById('wConditionText');
+      const iconEl = document.getElementById('wIconContainer');
+      const windEl = document.getElementById('wWindSpeed');
+      const humEl = document.getElementById('wHumidity');
+
+      if (tempEl) tempEl.textContent = `${temp}°`;
+      if (condEl) condEl.textContent = details.desc;
+      if (iconEl) iconEl.textContent = details.icon;
+      if (windEl) windEl.textContent = `${wind} km/h`;
+      if (humEl) humEl.textContent = `${hum}%`;
+
+      // Screensaver
+      document.getElementById('screenWeatherTemp').textContent = `${temp}°C`;
+      document.getElementById('screenWeatherIcon').textContent = details.icon;
+      document.getElementById('screenWeatherDesc').textContent = `${details.desc} a ${appState.weather.city}`;
+
+      // Forecast
+      const fCont = document.getElementById('wForecastContainer');
+      if (fCont && data.daily) {
+        const daysMap = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
+        let html = '';
+        for (let i = 1; i <= 3; i++) {
+          if (data.daily.time[i]) {
+            const date = new Date(data.daily.time[i]);
+            const dayName = daysMap[date.getDay()];
+            const dDet = getWeatherCodeDetails(data.daily.weather_code[i]);
+            const max = Math.round(data.daily.temperature_2m_max[i]);
+            html += `
+              <div class="p-1.5 rounded-xl bg-slate-900/60 border border-slate-800">
+                <div class="text-[9px] uppercase font-bold text-slate-400">${dayName}</div>
+                <div class="text-base my-0.5">${dDet.icon}</div>
+                <div class="text-xs font-bold text-slate-200">${max}°</div>
+              </div>
+            `;
+          }
+        }
+        fCont.innerHTML = html;
+      }
+    }
+
+    function openWeatherModal() {
+      document.getElementById('weatherCityInput').value = appState.weather.city;
+      document.getElementById('modalWeatherCity').classList.remove('opacity-0', 'pointer-events-none');
+    }
+    function closeWeatherModal() {
+      document.getElementById('modalWeatherCity').classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    async function saveWeatherCity() {
+      const city = document.getElementById('weatherCityInput').value.trim();
+      if (!city) return;
+      try {
+        const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=it&format=json`);
+        const data = await res.json();
+        if (data.results && data.results.length > 0) {
+          const loc = data.results[0];
+          appState.weather.city = loc.name;
+          appState.weather.latitude = loc.latitude;
+          appState.weather.longitude = loc.longitude;
+          saveState();
+          closeWeatherModal();
+          fetchWeather();
+          showToast(`Città meteo impostata: ${loc.name}`, 'map-pin');
+        } else {
+          showToast('Località non trovata', 'alert-triangle');
+        }
+      } catch (e) {
+        showToast('Errore ricerca meteo', 'alert-circle');
+      }
+    }
+
+    /* ========================================================
+       10. DOMOTICA & TERMOSTATO
+       ======================================================== */
+    function toggleDevice(key) {
+      appState.smartHome[key] = !appState.smartHome[key];
+      saveState();
+      updateDevicesUI();
+    }
+
+    function adjustThermostat(delta) {
+      let t = appState.smartHome.thermostatTemp + delta;
+      if (t < 14) t = 14;
+      if (t > 28) t = 28;
+      appState.smartHome.thermostatTemp = Math.round(t * 10) / 10;
+      saveState();
+      updateDevicesUI();
+    }
+
+    function setScene(scene) {
+      appState.smartHome.scene = scene;
+      if (scene === 'home') {
+        appState.smartHome.lightLiving = true;
+        appState.smartHome.lightKitchen = true;
+        showToast('Scenario In Casa attivato', 'home');
+      } else if (scene === 'away') {
+        appState.smartHome.lightLiving = false;
+        appState.smartHome.lightKitchen = false;
+        showToast('Scenario Fuori: tutto spento', 'shield');
+      } else if (scene === 'night') {
+        appState.smartHome.lightLiving = false;
+        appState.smartHome.lightKitchen = false;
+        showToast('Scenario Notte: salvaschermo attivo', 'moon');
+        enterScreensaver();
+      }
+      saveState();
+      renderAllWidgets();
+    }
+
+    function updateDevicesUI() {
+      const devLiving = document.getElementById('dev_lightLiving');
+      if (devLiving) {
+        const on = appState.smartHome.lightLiving;
+        devLiving.className = on
+          ? "p-2.5 rounded-2xl text-left border border-amber-500/50 bg-amber-500/15 tap-btn transition"
+          : "p-2.5 rounded-2xl text-left border border-slate-800 bg-slate-900/60 tap-btn transition";
+        devLiving.querySelector('i').className = on ? "w-4 h-4 text-amber-400" : "w-4 h-4 text-slate-400";
+        devLiving.querySelector('span').textContent = on ? "ON" : "OFF";
+      }
+
+      const devKitchen = document.getElementById('dev_lightKitchen');
+      if (devKitchen) {
+        const on = appState.smartHome.lightKitchen;
+        devKitchen.className = on
+          ? "p-2.5 rounded-2xl text-left border border-amber-500/50 bg-amber-500/15 tap-btn transition"
+          : "p-2.5 rounded-2xl text-left border border-slate-800 bg-slate-900/60 tap-btn transition";
+        devKitchen.querySelector('i').className = on ? "w-4 h-4 text-amber-400" : "w-4 h-4 text-slate-400";
+        devKitchen.querySelector('span').textContent = on ? "ON" : "OFF";
+      }
+
+      const tDisp = document.getElementById('thermostatDisplay');
+      if (tDisp) tDisp.textContent = `${appState.smartHome.thermostatTemp.toFixed(1)}°C`;
+    }
+
+    /* ========================================================
+       11. PROMEMORIA (TO-DO LIST)
+       ======================================================== */
+    function renderTodos() {
+      const container = document.getElementById('todoListContainer');
+      const counter = document.getElementById('todoBadgeCounter');
+      if (!container) return;
+
+      const todos = appState.todos || [];
+      const pending = todos.filter(t => !t.done).length;
+      if (counter) counter.textContent = `${pending} da fare`;
+
+      if (todos.length === 0) {
+        container.innerHTML = `<div class="text-center py-6 text-slate-500 text-xs">Nessun promemoria presente.</div>`;
+        return;
+      }
+
+      container.innerHTML = todos.map(t => `
+        <div class="p-2 rounded-2xl bg-slate-900/70 border border-slate-800 flex items-center justify-between gap-2">
+          <button onclick="toggleTodo('${t.id}')" class="flex items-center gap-2 flex-1 text-left min-w-0">
+            <div class="w-4 h-4 rounded-md border flex items-center justify-center transition-all ${
+              t.done ? 'bg-emerald-500 border-emerald-500 text-slate-950 font-bold' : 'border-slate-600 bg-slate-950'
+            }">
+              ${t.done ? '<i data-lucide="check" class="w-3 h-3 stroke-[3]"></i>' : ''}
+            </div>
+            <span class="text-xs truncate ${t.done ? 'line-through text-slate-500' : 'text-slate-200'}">
+              ${escapeHtml(t.text)}
+            </span>
+          </button>
+          <button onclick="deleteTodo('${t.id}')" class="text-slate-500 hover:text-rose-400 p-1 tap-btn">
+            <i data-lucide="trash" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      `).join('');
+
+      lucide.createIcons();
+    }
+
+    function handleAddTodo(e) {
+      e.preventDefault();
+      const input = document.getElementById('newTodoInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      appState.todos.unshift({ id: 't_' + Date.now(), text, done: false });
+      input.value = '';
+      saveState();
+      renderTodos();
+    }
+
+    function toggleTodo(id) {
+      const item = appState.todos.find(t => t.id === id);
+      if (item) {
+        item.done = !item.done;
+        saveState();
+        renderTodos();
+      }
+    }
+
+    function deleteTodo(id) {
+      appState.todos = appState.todos.filter(t => t.id !== id);
+      saveState();
+      renderTodos();
+    }
+
+    function clearFamilyNote() {
+      appState.familyNote = '';
+      const noteEl = document.getElementById('familyNotePad');
+      if (noteEl) noteEl.value = '';
+      saveState();
+      showToast('Bacheca note cancellata', 'trash');
+    }
+
+    /* ========================================================
+       12. WEB RADIO PLAYER TOUCH
+       ======================================================== */
+    const RADIO_STATIONS = [
+      { name: 'Rai Radio 1', genre: 'Notizie & Approfondimenti', stream: 'https://icstream.rai.it/1.mp3' },
+      { name: 'Rai Radio 2', genre: 'Musica & Intrattenimento', stream: 'https://icstream.rai.it/2.mp3' },
+      { name: 'Lofi Relax Streaming', genre: 'Chill Beats per la Casa', stream: 'https://play.streamafrica.net/lofiradio' }
+    ];
+
+    let currentRadioIdx = 0;
+    let isRadioPlaying = false;
+    const audioPlayer = document.getElementById('audioRadioPlayer');
+
+    function selectRadioStation(index) {
+      currentRadioIdx = index;
+      const st = RADIO_STATIONS[index];
+      document.getElementById('radioStationTitle').textContent = st.name;
+      document.getElementById('radioStationGenre').textContent = st.genre;
+      if (isRadioPlaying) {
+        audioPlayer.src = st.stream;
+        audioPlayer.play().catch(() => {});
+      }
+    }
+
+    function toggleRadioPlay() {
+      const btnIcon = document.getElementById('radioPlayIcon');
+      const pill = document.getElementById('radioStatusPill');
+
+      if (!isRadioPlaying) {
+        audioPlayer.src = RADIO_STATIONS[currentRadioIdx].stream;
+        audioPlayer.play().then(() => {
+          isRadioPlaying = true;
+          if (btnIcon) btnIcon.setAttribute('data-lucide', 'square');
+          if (pill) {
+            pill.textContent = 'ON AIR';
+            pill.className = 'text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/40 font-mono font-bold animate-pulse';
+          }
+          lucide.createIcons();
+          showToast(`In riproduzione: ${RADIO_STATIONS[currentRadioIdx].name}`, 'radio');
+        }).catch(() => {
+          showToast('Impossibile avviare streaming audio', 'alert-circle');
+        });
+      } else {
+        audioPlayer.pause();
+        isRadioPlaying = false;
+        if (btnIcon) btnIcon.setAttribute('data-lucide', 'play');
+        if (pill) {
+          pill.textContent = 'STOP';
+          pill.className = 'text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono';
+        }
+        lucide.createIcons();
+      }
+    }
+
+    /* ========================================================
+       13. OROLOGIO, DATA & SCREENSAVER NOTTURNO
+       ======================================================== */
+    function updateClock() {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const shortTime = now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+      const dateStr = now.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+      const headerT = document.getElementById('headerTime');
+      const headerD = document.getElementById('headerDate');
+      if (headerT) headerT.textContent = timeStr;
+      if (headerD) headerD.textContent = dateStr;
+
+      document.getElementById('screenClock').textContent = shortTime;
+      document.getElementById('screenDate').textContent = dateStr;
+
+      const h = now.getHours();
+      let greeting = 'Buona notte';
+      if (h >= 6 && h < 13) greeting = 'Buongiorno';
+      else if (h >= 13 && h < 18) greeting = 'Buon pomeriggio';
+      else if (h >= 18 && h < 24) greeting = 'Buonasera';
+      document.getElementById('subGreeting').textContent = `${greeting} • Pannello Touch a Parete`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function updateScreensaverNextEvent() {
+      const nextEv = getAllUnifiedEvents().filter(e => new Date(e.start) >= new Date())[0];
+      const el = document.getElementById('screenNextEventMini');
+      if (nextEv) {
+        const d = new Date(nextEv.start);
+        el.innerHTML = `🔔 Prossimo evento: <strong>${escapeHtml(nextEv.title)}</strong> alle ${d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`;
+      } else {
+        el.textContent = 'Nessun impegno imminente';
+      }
+    }
+
+    // Screensaver toggle
+    const screensaver = document.getElementById('screensaverOverlay');
+    function enterScreensaver() {
+      screensaver.classList.remove('opacity-0', 'pointer-events-none');
+      screensaver.classList.add('opacity-100', 'pointer-events-auto');
+      updateScreensaverNextEvent();
+    }
+    function exitScreensaver() {
+      screensaver.classList.remove('opacity-100', 'pointer-events-auto');
+      screensaver.classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    document.getElementById('btnDimMode').addEventListener('click', enterScreensaver);
+    screensaver.addEventListener('click', exitScreensaver);
+    screensaver.addEventListener('touchstart', exitScreensaver);
+
+    // Fullscreen Toggle
+    document.getElementById('btnFullscreen').addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    });
+
+    // Helper funzioni modali
+    function openCalendarModal() {
+      document.getElementById('googleIcalUrlInput').value = appState.calendars.googleIcalUrl || '';
+      document.getElementById('icloudUrlInput').value = appState.calendars.icloudUrl || '';
+      document.getElementById('googleEmbedUrlInput').value = appState.calendars.googleEmbedUrl || '';
+      document.getElementById('modalCalendars').classList.remove('opacity-0', 'pointer-events-none');
+    }
+    function closeCalendarModal() {
+      document.getElementById('modalCalendars').classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    function toggleBox(id) {
+      const b = document.getElementById(id);
+      if (b) b.classList.toggle('hidden');
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]);
+    }
+
+    /* ========================================================
+       14. AVVIO APPLICAZIONE
+       ======================================================== */
+    window.addEventListener('DOMContentLoaded', () => {
+      renderAllWidgets();
+      fetchWeather();
+
+      // Sincronizzazione calendari all'avvio
+      if (appState.calendars.googleIcalUrl || appState.calendars.icloudUrl) {
+        syncAllCalendars();
+      }
+
+      // Sincronizzazione automatica programmata ogni 15 minuti
+      setInterval(() => {
+        if (appState.calendars.googleIcalUrl || appState.calendars.icloudUrl) {
+          syncAllCalendars();
+        }
+        fetchWeather();
+      }, 15 * 60 * 1000);
+    });
+  </script>
+</body>
+</html>
